@@ -1,4 +1,7 @@
+import { NavLink } from "react-router-dom";
+
 const Logo = () => (
+  <NavLink to="/">
     <svg
       id="logo-52"
       width="170"
@@ -61,6 +64,7 @@ const Logo = () => (
         fill="#2F234F"
       ></path>{" "}
     </svg>
+    </NavLink>
   );
 
   export default Logo;
