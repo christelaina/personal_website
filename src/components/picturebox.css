@@ -2,9 +2,12 @@
 
 .picturebox {
     border: 1px solid;
+    border-color: #283106;
     padding: 2rem;
     margin: auto 2rem;
     width: 20rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .picturebox img {
@@ -12,20 +15,42 @@
 }
 
 .textbox {
-    position: relative;
     width: 15rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .textbox p {
-    position: absolute;
-    bottom: 0;
+    margin-top: auto;
+    margin-bottom: 0;
     width: 15rem;
     font-family: 'Cormorant', serif;
-    
 }
 
 .textbox h3 {
-    opacity: 10%;
+    opacity: 0;
     font-family: 'Ultra', serif;
     font-size: 3rem;
+    width: 12rem;
+    transition: opacity 0.5s ease-in-out;
+    margin-top: 0;
+    margin-bottom: auto;
+}
+
+.picturebox-container {
+    display: flex;
+    margin: auto 0 1rem;
+}
+
+.picturebox-container:hover .textbox h3 {
+    opacity: 0.1;
+}
+
+.picturebox .picturebox-img {
+    transition: transform 0.5s ease-in-out;
+    opacity: 1;
+}
+
+.picturebox .picturebox-img:hover {
+    transform: scale(1.01);
 }
