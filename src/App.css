@@ -1,42 +1,84 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Poppins', sans-serif;
-  background-color: #FEF9F5;
+  font-family: "Jacques Francois";
+  background-color: #fef9f5;
   color: #283106;
 }
 
-.parent-content {
-  /* margin: auto 20rem; */
-  /* flex-grow: 1;
-  box-sizing: border-box; */
-  display: flex;
+.center {
   height: 100vh;
-  width: 100vw;
+  display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.parent-content {
+  margin-bottom: 3rem;
+  width: 50rem;
+  height: 45rem;
+  position: relative;
+}
+
 .content {
-  margin: 1rem 0 10rem;
-  padding: 1rem;
-  
-}
-
-.content p {
-  width: 20rem;
-}
-
-.content img {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  margin: 1rem 0 1rem;
+  padding: 1rem 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .wrap {
   display: flex;
-  
+}
+
+.wrap h1 {
+  margin: 0;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  margin: 2rem 0;
+  padding-bottom: 5px;
+}
+
+.blob {
+  width: 35rem;
+  height: 15rem;
+  border-radius: 18.75rem 18.75rem 6.25rem 6.25rem;
+  background: #b4bfa5;
+  box-sizing: border-box;
+}
+
+.plate {
+  border: 1px solid;
+  width: 15rem;
+  height: 5rem;
+  text-align: center;
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.footbar {
+  height: 1px;
+  width: 100%;
+  background-color: #283106;
+  margin: 2rem 0;
+  display: flex;
+  justify-content: space-between;
+  position: absolute;
+  bottom: 0;
+}
+
+a {
+  text-decoration: none;
+  color: #283106;
 }

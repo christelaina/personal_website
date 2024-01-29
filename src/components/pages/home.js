@@ -1,14 +1,17 @@
 import "../../App.css";
-import Nameplate from "../nameplate";
-import Sidebar from "../sidebar";
+import Footbar from "../footbar";
+import Navbar from "../navbar";
 
 const Home = () => {
   return (
     <>
-      <div className="parent-content">
-        <Sidebar />
-        <div className="content">
-          <Nameplate />
+      <div className="center">
+        <div className="parent-content">
+          <Navbar />
+          <div className="content">
+            <div className="blob"></div>
+          </div>
+          <Footbar />
         </div>
       </div>
     </>

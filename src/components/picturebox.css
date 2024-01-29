@@ -1,56 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@1,600&family=Ultra&display=swap');
-
 .picturebox {
-    border: 1px solid;
-    border-color: #283106;
-    padding: 2rem;
-    margin: auto 2rem;
-    width: 20rem;
-    display: flex;
-    flex-direction: column;
+  border: 1px solid;
+  border-color: #283106;
+  padding: 2rem;
+  margin: 0;
+  width: 20rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .picturebox img {
-    cursor: pointer;
-}
-
-.textbox {
-    width: 15rem;
-    display: flex;
-    flex-direction: column;
-}
-
-.textbox p {
-    margin-top: auto;
-    margin-bottom: 0;
-    width: 15rem;
-    font-family: 'Cormorant', serif;
-}
-
-.textbox h3 {
-    opacity: 0;
-    font-family: 'Ultra', serif;
-    font-size: 3rem;
-    width: 12rem;
-    transition: opacity 0.5s ease-in-out;
-    margin-top: 0;
-    margin-bottom: auto;
+  cursor: pointer;
 }
 
 .picturebox-container {
-    display: flex;
-    margin: auto 0 1rem;
-}
-
-.picturebox-container:hover .textbox h3 {
-    opacity: 0.1;
+  display: flex;
+  margin: 0;
 }
 
 .picturebox .picturebox-img {
-    transition: transform 0.5s ease-in-out;
-    opacity: 1;
+  transition: transform 0.5s ease-in-out;
+  opacity: 1;
 }
 
 .picturebox .picturebox-img:hover {
-    transform: scale(1.01);
+  transform: scale(1.01);
 }

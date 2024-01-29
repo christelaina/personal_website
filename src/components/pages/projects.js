@@ -1,13 +1,17 @@
-import Sidebar from "../sidebar";
+import Navbar from "../navbar";
 import "../../App.css";
+import Footbar from "../footbar";
 
 const Projects = () => {
   return (
     <>
-      <div className="parent-content">
-        <Sidebar />
-        <div className="content">
-          <h2>projects</h2>
+      <div className="center">
+        <div className="parent-content">
+          <Navbar />
+          <div className="content">
+            <h1>projects</h1>
+          </div>
+          <Footbar />
         </div>
       </div>
     </>
