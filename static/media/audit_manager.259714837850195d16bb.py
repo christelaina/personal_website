@@ -12,7 +12,7 @@ import webbrowser
 import urllib.parse
 
 ctk.set_appearance_mode("System")  # "Dark", "Light", or "System"
-ctk.set_default_color_theme("blue")
+ctk.set_default_color_theme("green")
 
 class AuditManagerApp:
     def __init__(self, root):
@@ -157,56 +157,91 @@ class AuditManagerApp:
         frame = self.dashboard_tab
         for widget in frame.winfo_children():
             widget.destroy()
-        ctk.CTkLabel(frame, text="Audit Issue Dashboard", font=("Arial", 22, "bold")).pack(pady=20)
-        stats_frame = ctk.CTkFrame(frame)
-        stats_frame.pack(fill='x', padx=20, pady=10)
-        
-        # Calculate statistics
-        total_issues = len(self.df)
-        open_issues = len(self.df[self.df['Status'] == 'Open']) if not self.df.empty else 0
-        resolved_issues = len(self.df[self.df['Status'] == 'Resolved']) if not self.df.empty else 0
-        
-        # Create stat boxes
-        stats = [
-            ("Total Issues", total_issues, "#3b82f6"),
-            ("Open Issues", open_issues, "#f59e0b"),
-            ("Resolved Issues", resolved_issues, "#10b981")
+        # Set dashboard_display_columns before any use
+        self.dashboard_display_columns = [
+            'Reporting Month', 'Issue ID', 'Responsible Business Segment', 'Team Name', 'Issue Title', 'Issue Summary',
+            'Issue Description', 'Impact and Likelihood', 'Recommendation', 'Action Plan Due Date',
+            'Management Resolution Date', '1B Contact', 'Previous Month Rationale', 'Line of Business',
+            'Reporting Categories', 'Root Cause Category Selected', 'Root Cause Sub Category Selected', 'Risk Group'
         ]
-        
+        ctk.CTkLabel(frame, text="Audit Issue Dashboard", font=("Arial", 22, "bold")).pack(pady=(10, 2))
+        stats_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        stats_frame.pack(fill='x', padx=20, pady=(0, 5))
+        total_issues = len(self.df)
+        open_issues = len(self.df[self.df['Status'] == 'Open']) if not self.df.empty and 'Status' in self.df.columns else 0
+        resolved_issues = len(self.df[self.df['Status'] == 'Resolved']) if not self.df.empty and 'Status' in self.df.columns else 0
+        stats = [
+            ("Total", total_issues, "#3b82f6"),
+            ("Open", open_issues, "#f59e0b"),
+            ("Resolved", resolved_issues, "#10b981")
+        ]
         for i, (label, value, color) in enumerate(stats):
-            stat_frame = ctk.CTkFrame(stats_frame)
-            stat_frame.grid(row=0, column=i, padx=10, pady=10, sticky='ew')
-            ctk.CTkLabel(stat_frame, text=label, font=("Arial", 14)).pack()
-            ctk.CTkLabel(stat_frame, text=str(value), font=("Arial", 28, "bold"), text_color=color).pack()
-        stats_frame.grid_columnconfigure((0, 1, 2), weight=1)
+            stat = ctk.CTkFrame(stats_frame, fg_color="transparent")
+            stat.grid(row=0, column=i, padx=8, pady=0, sticky='w')
+            ctk.CTkLabel(stat, text=label, font=("Arial", 12)).pack(side='left', padx=(0, 2))
+            ctk.CTkLabel(stat, text=str(value), font=("Arial", 14, "bold"), text_color=color).pack(side='left')
+        stats_frame.grid_columnconfigure((0, 1, 2), weight=0)
 
-        # --- FILTERS ---
+        # --- SEARCH, FILTER, SORT ---
         filter_frame = ctk.CTkFrame(frame)
         filter_frame.pack(fill='x', padx=20, pady=5)
-        ctk.CTkLabel(filter_frame, text="Filter by Team:").pack(side='left', padx=(0, 5))
-        teams = sorted(list(self.df['Team'].dropna().unique())) if not self.df.empty else []
-        self.team_filter_var = ctk.StringVar(value="All")
-        team_options = ["All"] + teams
-        self.team_filter_box = ctk.CTkComboBox(filter_frame, values=team_options, variable=self.team_filter_var, width=150, command=self.update_dashboard_table)
-        self.team_filter_box.pack(side='left', padx=(0, 20))
+        # Multi-column search bar
+        ctk.CTkLabel(filter_frame, text="Search:").pack(side='left', padx=(0, 5))
+        self.multi_search_var = ctk.StringVar()
+        self.multi_search_entry = ctk.CTkEntry(filter_frame, textvariable=self.multi_search_var, width=220)
+        self.multi_search_entry.pack(side='left', padx=(0, 20))
+        self.multi_search_entry.bind('<KeyRelease>', lambda e: self.update_dashboard_table())
+        # Multi-select filter
+        ctk.CTkLabel(filter_frame, text="Filter by:").pack(side='left', padx=(0, 5))
+        filter_columns = [col for col in self.dashboard_display_columns if col in self.df.columns]
+        self.filter_column_var = ctk.StringVar(value=filter_columns[0] if filter_columns else "")
+        self.filter_column_box = ctk.CTkComboBox(filter_frame, values=filter_columns, variable=self.filter_column_var, width=150, command=self.on_filter_column_change)
+        self.filter_column_box.pack(side='left', padx=(0, 5))
+        self.filter_multi_values = set()
+        self.filter_multi_button = ctk.CTkButton(filter_frame, text="Select Values", command=self.open_multi_filter_popup)
+        self.filter_multi_button.pack(side='left', padx=(0, 20))
+        # Sort by column (clickable headers)
+        ctk.CTkLabel(filter_frame, text="Sort by:").pack(side='left', padx=(0, 5))
+        self.sort_column_var = ctk.StringVar(value=filter_columns[0] if filter_columns else "")
+        self.sort_column_box = ctk.CTkComboBox(filter_frame, values=filter_columns, variable=self.sort_column_var, width=150, command=self.update_dashboard_table)
+        self.sort_column_box.pack(side='left', padx=(0, 5))
+        self.sort_order_var = ctk.StringVar(value="Ascending")
+        self.sort_order_box = ctk.CTkComboBox(filter_frame, values=["Ascending", "Descending"], variable=self.sort_order_var, width=100, command=self.update_dashboard_table)
+        self.sort_order_box.pack(side='left', padx=(0, 5))
+        self.on_filter_column_change()  # Initialize filter values
 
         # --- ISSUES TABLE ---
         table_frame = ctk.CTkFrame(frame)
-        table_frame.pack(fill='both', expand=True, padx=20, pady=10)
+        table_frame.pack(fill='both', expand=True, padx=20, pady=(5, 10))
         ctk.CTkLabel(table_frame, text="Audit Issues", font=("Arial", 14, "bold")).pack(anchor='w')
-        self.dashboard_display_columns = ('ID', 'Description', 'Team', 'Priority', 'Status', 'Resolution_Date')
-        self.dashboard_tree = ttk.Treeview(table_frame, columns=self.dashboard_display_columns, show='headings', height=12)
-        for col in self.dashboard_display_columns:
-            self.dashboard_tree.heading(col, text=col)
-            self.dashboard_tree.column(col, width=150)
-        self.dashboard_tree.pack(fill='both', expand=True, pady=10)
+        dashboard_cols = [col for col in self.dashboard_display_columns if col in self.df.columns]
+        self.dashboard_tree = ttk.Treeview(table_frame, columns=dashboard_cols, show='headings', height=12)
+        for col in dashboard_cols:
+            self.dashboard_tree.heading(col, text=col, command=lambda c=col: self.on_column_header_click(c))
+            self.dashboard_tree.column(col, width=180)
+        self.dashboard_tree.pack(fill='both', expand=True, pady=5)
         self.dashboard_tree.bind('<<TreeviewSelect>>', self.on_dashboard_select)
+        self.dashboard_tree_cols = dashboard_cols
+        self.sort_state = {col: None for col in dashboard_cols}  # None, 'asc', 'desc'
         self.update_dashboard_table()
 
         # --- EMAIL PREVIEW PANEL ---
         preview_frame = ctk.CTkFrame(frame)
-        preview_frame.pack(fill='x', padx=20, pady=10)
+        preview_frame.pack(fill='x', padx=20, pady=(0, 10))
         ctk.CTkLabel(preview_frame, text="Email Preview", font=("Arial", 14, "bold")).pack(anchor='w')
+        interval_frame = ctk.CTkFrame(preview_frame, fg_color="transparent")
+        interval_frame.pack(anchor='w', pady=(0, 5))
+        ctk.CTkLabel(interval_frame, text="Reminder Interval:").pack(side='left', padx=(0, 5))
+        self.reminder_interval_var = ctk.StringVar(value="7 days before")
+        self.reminder_intervals = [
+            ("7 days before", 7),
+            ("30 days before", 30),
+            ("3 months before", 90),
+            ("6 months before", 180)
+        ]
+        interval_options = [label for label, _ in self.reminder_intervals]
+        self.reminder_interval_box = ctk.CTkComboBox(interval_frame, values=interval_options, variable=self.reminder_interval_var, width=160, command=self.on_reminder_interval_change)
+        self.reminder_interval_box.pack(side='left', padx=(0, 10))
         self.email_preview_box = ctk.CTkTextbox(preview_frame, height=200, font=("Consolas", 12))
         self.email_preview_box.pack(fill='x', expand=True, pady=5)
         button_frame = ctk.CTkFrame(preview_frame, fg_color="transparent")
@@ -229,12 +264,12 @@ class AuditManagerApp:
         ctk.CTkButton(button_frame, text="Send Reminder", command=self.send_reminder_to_selected).pack(side='left', padx=5)
         table_frame = ctk.CTkFrame(frame)
         table_frame.pack(fill='both', expand=True, padx=20, pady=10)
-        ctk.CTkLabel(table_frame, text="All Issues", font=("Arial", 14, "bold")).pack(anchor='w')
-        columns = ('ID', 'Description', 'Team', 'Team_Email', 'Priority', 'Status', 'Created_Date', 'Resolution_Date', 'Reminder_Count')
-        self.issues_tree = ttk.Treeview(table_frame, columns=columns, show='headings', height=16)
-        for col in columns:
+        ctk.CTkLabel(table_frame, text="All Issues (All Columns)", font=("Arial", 14, "bold")).pack(anchor='w')
+        all_columns = list(self.df.columns)
+        self.issues_tree = ttk.Treeview(table_frame, columns=all_columns, show='headings', height=16)
+        for col in all_columns:
             self.issues_tree.heading(col, text=col)
-            self.issues_tree.column(col, width=120)
+            self.issues_tree.column(col, width=150)
         self.issues_tree.pack(fill='both', expand=True, pady=10)
         self.update_issues_table()
 
@@ -242,36 +277,153 @@ class AuditManagerApp:
         frame = self.email_tab
         for widget in frame.winfo_children():
             widget.destroy()
-        ctk.CTkLabel(frame, text="Email Template & Sending", font=("Arial", 18, "bold")).pack(pady=20)
-        template_frame = ctk.CTkFrame(frame)
-        template_frame.pack(fill='both', expand=True, padx=20, pady=10)
-        ctk.CTkLabel(template_frame, text="Edit the email template below:").pack(anchor='w')
-        self.template_text = ctk.CTkTextbox(template_frame, height=250, width=900, font=("Consolas", 12))
+        ctk.CTkLabel(frame, text="Email Template Management", font=("Arial", 18, "bold")).pack(pady=20)
+        # Load templates from file
+        self.email_templates_file = 'email_templates.json'
+        self.email_templates = self.load_email_templates()
+        self.selected_template_name = None
+        # Template selection and management
+        top_frame = ctk.CTkFrame(frame)
+        top_frame.pack(fill='x', padx=20, pady=5)
+        ctk.CTkLabel(top_frame, text="Select Template:").pack(side='left', padx=(0, 5))
+        self.template_names = list(self.email_templates.keys())
+        self.template_select_var = ctk.StringVar(value=self.template_names[0] if self.template_names else "")
+        self.template_select_box = ctk.CTkComboBox(top_frame, values=self.template_names, variable=self.template_select_var, width=200, command=self.on_template_select)
+        self.template_select_box.pack(side='left', padx=(0, 10))
+        ctk.CTkButton(top_frame, text="New Template", command=self.new_email_template).pack(side='left', padx=5)
+        ctk.CTkButton(top_frame, text="Delete Template", command=self.delete_email_template).pack(side='left', padx=5)
+        # Association with column value
+        assoc_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        assoc_frame.pack(fill='x', padx=20, pady=2)
+        ctk.CTkLabel(assoc_frame, text="Associate with column value (optional):").pack(side='left', padx=(0, 5))
+        self.assoc_column_var = ctk.StringVar(value="")
+        assoc_columns = [col for col in self.df.columns if col not in ("", None)]
+        self.assoc_column_box = ctk.CTkComboBox(assoc_frame, values=["None"] + assoc_columns, variable=self.assoc_column_var, width=150)
+        self.assoc_column_box.pack(side='left', padx=(0, 10))
+        self.assoc_value_var = ctk.StringVar(value="")
+        self.assoc_value_box = ctk.CTkEntry(assoc_frame, textvariable=self.assoc_value_var, width=150)
+        self.assoc_value_box.pack(side='left', padx=(0, 10))
+        # HTML/Text toggle
+        toggle_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        toggle_frame.pack(fill='x', padx=20, pady=2)
+        self.html_mode = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(toggle_frame, text="Edit as HTML", variable=self.html_mode, command=self.on_html_mode_toggle).pack(side='left')
+        # Template editor
+        editor_frame = ctk.CTkFrame(frame)
+        editor_frame.pack(fill='both', expand=True, padx=20, pady=5)
+        ctk.CTkLabel(editor_frame, text="Edit Template:").pack(anchor='w')
+        self.template_text = ctk.CTkTextbox(editor_frame, height=250, width=900, font=("Consolas", 12))
         self.template_text.pack(fill='both', expand=True, pady=10)
-        
-        # Load current template
-        self.load_email_template()
-        template_buttons = ctk.CTkFrame(template_frame, fg_color="transparent")
-        template_buttons.pack(fill='x', pady=10)
-        ctk.CTkButton(template_buttons, text="Save Template", command=self.save_email_template).pack(side='left', padx=5)
-        ctk.CTkButton(template_buttons, text="Reset to Default", command=self.reset_email_template).pack(side='left', padx=5)
-        sending_frame = ctk.CTkFrame(frame)
-        sending_frame.pack(fill='x', padx=20, pady=10)
-        issue_frame = ctk.CTkFrame(sending_frame, fg_color="transparent")
-        issue_frame.pack(fill='x', pady=10)
-        ctk.CTkLabel(issue_frame, text="Select Issue:").pack(side='left')
-        self.issue_var = ctk.StringVar()
-        self.issue_combo = ctk.CTkComboBox(issue_frame, variable=self.issue_var, width=400, state='readonly')
-        self.issue_combo.pack(side='left', padx=10)
-        
-        # Update issue list
-        self.update_issue_combo()
-        ctk.CTkButton(sending_frame, text="Send Reminder Email", command=self.send_reminder_email).pack(pady=10)
-        bulk_frame = ctk.CTkFrame(sending_frame, fg_color="transparent")
-        bulk_frame.pack(fill='x', pady=10)
-        ctk.CTkLabel(bulk_frame, text="Bulk Operations:").pack(side='left')
-        ctk.CTkButton(bulk_frame, text="Send All Overdue Reminders", command=self.send_all_overdue_reminders).pack(side='left', padx=10)
-        ctk.CTkButton(bulk_frame, text="Send Weekly Reminders", command=self.send_weekly_reminders).pack(side='left', padx=10)
+        # Save button
+        save_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        save_frame.pack(fill='x', padx=20, pady=2)
+        ctk.CTkButton(save_frame, text="Save Template", command=self.save_email_template).pack(side='left', padx=5)
+        # Live preview
+        preview_frame = ctk.CTkFrame(frame)
+        preview_frame.pack(fill='x', padx=20, pady=10)
+        ctk.CTkLabel(preview_frame, text="Live Preview", font=("Arial", 14, "bold")).pack(anchor='w')
+        self.email_template_preview_box = ctk.CTkTextbox(preview_frame, height=200, font=("Consolas", 12))
+        self.email_template_preview_box.pack(fill='x', expand=True, pady=5)
+        # Initial load
+        self.load_selected_template()
+        self.update_email_template_preview()
+
+    def load_email_templates(self):
+        import os, json
+        if not os.path.exists(self.email_templates_file):
+            return {}
+        with open(self.email_templates_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    def save_email_templates(self):
+        with open(self.email_templates_file, 'w', encoding='utf-8') as f:
+            json.dump(self.email_templates, f, indent=2)
+
+    def on_template_select(self, *args):
+        self.selected_template_name = self.template_select_var.get()
+        self.load_selected_template()
+        self.update_email_template_preview()
+
+    def load_selected_template(self):
+        name = self.template_select_var.get()
+        if name and name in self.email_templates:
+            template = self.email_templates[name]
+            self.template_text.delete('1.0', 'end')
+            self.template_text.insert('1.0', template.get('content', ''))
+            self.assoc_column_var.set(template.get('assoc_column', 'None'))
+            self.assoc_value_var.set(template.get('assoc_value', ''))
+        else:
+            self.template_text.delete('1.0', 'end')
+            self.assoc_column_var.set('None')
+            self.assoc_value_var.set('')
+
+    def save_email_template(self):
+        name = self.template_select_var.get()
+        if not name:
+            messagebox.showerror("Error", "Please enter a template name.")
+            return
+        content = self.template_text.get('1.0', 'end').strip()
+        assoc_column = self.assoc_column_var.get() if self.assoc_column_var.get() != 'None' else ''
+        assoc_value = self.assoc_value_var.get().strip()
+        self.email_templates[name] = {
+            'content': content,
+            'assoc_column': assoc_column,
+            'assoc_value': assoc_value
+        }
+        self.save_email_templates()
+        messagebox.showinfo("Saved", f"Template '{name}' saved.")
+        self.template_names = list(self.email_templates.keys())
+        self.template_select_box.configure(values=self.template_names)
+        self.update_email_template_preview()
+
+    def new_email_template(self):
+        import tkinter.simpledialog
+        name = tkinter.simpledialog.askstring("New Template", "Enter template name:")
+        if not name:
+            return
+        if name in self.email_templates:
+            messagebox.showerror("Error", "A template with this name already exists.")
+            return
+        self.email_templates[name] = {'content': '', 'assoc_column': '', 'assoc_value': ''}
+        self.save_email_templates()
+        self.template_names = list(self.email_templates.keys())
+        self.template_select_box.configure(values=self.template_names)
+        self.template_select_var.set(name)
+        self.load_selected_template()
+        self.update_email_template_preview()
+
+    def delete_email_template(self):
+        name = self.template_select_var.get()
+        if not name or name not in self.email_templates:
+            return
+        if messagebox.askyesno("Delete Template", f"Delete template '{name}'?"):
+            del self.email_templates[name]
+            self.save_email_templates()
+            self.template_names = list(self.email_templates.keys())
+            self.template_select_box.configure(values=self.template_names)
+            if self.template_names:
+                self.template_select_var.set(self.template_names[0])
+            else:
+                self.template_select_var.set("")
+            self.load_selected_template()
+            self.update_email_template_preview()
+
+    def on_html_mode_toggle(self):
+        # For now, just a toggle; could add HTML syntax highlighting in the future
+        pass
+
+    def update_email_template_preview(self):
+        # Use the current template content and render with a dummy issue or the last selected issue
+        content = self.template_text.get('1.0', 'end')
+        issue = self.selected_issue if hasattr(self, 'selected_issue') and self.selected_issue else {col: f"[{col}]" for col in self.df.columns}
+        preview = content
+        for col in self.df.columns:
+            preview = preview.replace(f'{{{{{col}}}}}', str(issue.get(col, f'[{col}]')))
+        preview = preview.replace('{{CURRENT_DATE}}', datetime.now().strftime('%Y-%m-%d'))
+        import re
+        text_preview = re.sub('<[^<]+?>', '', preview)
+        self.email_template_preview_box.delete('1.0', 'end')
+        self.email_template_preview_box.insert('1.0', text_preview)
 
     def create_settings_tab(self):
         frame = self.settings_tab
@@ -283,23 +435,7 @@ class AuditManagerApp:
         info_text = """Corporate Email Setup:\n\nThis application will use your corporate email settings automatically.\nNo manual SMTP configuration is required.\n\nTo send emails:\n1. Ensure you're logged into your corporate email on this machine\n2. The system will use your default email application\n3. Emails will be sent through your corporate email system\n\nNote: If you encounter permission issues, contact your IT department."""
         ctk.CTkLabel(email_settings_frame, text=info_text, justify='left', font=("Arial", 12)).pack(anchor='w', pady=10)
         ctk.CTkButton(email_settings_frame, text="Test Email Configuration", command=self.test_email_config).pack(pady=10)
-        reminder_frame = ctk.CTkFrame(frame)
-        reminder_frame.pack(fill='x', padx=20, pady=10)
-        ctk.CTkLabel(reminder_frame, text="Configure when reminders should be sent:").pack(anchor='w')
-        self.reminder_intervals = []
-        intervals_data = [
-            ("30 days before", 30),
-            ("14 days before", 14),
-            ("7 days before", 7),
-            ("3 days before", 3),
-            ("1 day before", 1),
-            ("On due date", 0)
-        ]
-        
-        for i, (label, days) in enumerate(intervals_data):
-            var = ctk.BooleanVar(value=True)
-            self.reminder_intervals.append((var, days))
-            ctk.CTkCheckBox(reminder_frame, text=label, variable=var).pack(anchor='w', pady=2)
+        # Reminder interval options removed from settings tab
 
     def show_add_issue_dialog(self):
         """Show dialog to add a new issue"""
@@ -598,8 +734,8 @@ Generated on: {datetime.now().strftime('%Y-%m-%d')}
                 
                 # Check if reminder should be sent
                 should_send = False
-                for var, days_before in self.reminder_intervals:
-                    if var.get() and days_until_due == days_before:
+                for label, days_before in self.reminder_intervals:
+                    if label == self.reminder_interval_var.get() and days_until_due == days_before:
                         should_send = True
                         break
                 
@@ -844,72 +980,159 @@ Generated on: {datetime.now().strftime('%Y-%m-%d')}
         self.update_issues_table()
         messagebox.showinfo("Success", f"Sent {sent_count} weekly reminders!")
 
+    def on_filter_column_change(self, *args):
+        col = self.filter_column_var.get()
+        if col and col in self.df.columns:
+            values = sorted(list(self.df[col].dropna().unique()))
+            self.filter_value_box.configure(values=["All"] + values)
+            self.filter_value_var.set("All")
+        self.update_dashboard_table()
+
+    def open_multi_filter_popup(self):
+        import tkinter as tk
+        col = self.filter_column_var.get()
+        if not col or col not in self.df.columns:
+            return
+        values = sorted(list(self.df[col].dropna().unique()))
+        popup = tk.Toplevel(self.root)
+        popup.title(f"Select values for {col}")
+        popup.geometry("300x400")
+        popup.transient(self.root)
+        popup.grab_set()
+        var_dict = {}
+        frame = tk.Frame(popup)
+        frame.pack(fill='both', expand=True, padx=10, pady=10)
+        for v in values:
+            var = tk.BooleanVar(value=(v in self.filter_multi_values))
+            cb = tk.Checkbutton(frame, text=str(v), variable=var, anchor='w')
+            cb.pack(fill='x', anchor='w')
+            var_dict[v] = var
+        def on_ok():
+            self.filter_multi_values = set(v for v, var in var_dict.items() if var.get())
+            popup.destroy()
+            self.update_dashboard_table()
+        tk.Button(popup, text="OK", command=on_ok).pack(pady=10)
+
+    def on_column_header_click(self, col):
+        # Toggle sort order for the column
+        current = self.sort_state.get(col)
+        for k in self.sort_state:
+            self.sort_state[k] = None
+        if current == 'asc':
+            self.sort_state[col] = 'desc'
+        else:
+            self.sort_state[col] = 'asc'
+        self.sort_column_var.set(col)
+        self.sort_order_var.set('Ascending' if self.sort_state[col] == 'asc' else 'Descending')
+        self.update_dashboard_table()
+
     def update_dashboard_table(self, *args):
-        # Get filter values
-        team = self.team_filter_var.get() if hasattr(self, 'team_filter_var') else "All"
-        # Filter DataFrame
+        if not hasattr(self, 'dashboard_tree'):
+            return
+        # Multi-column search
+        search = self.multi_search_var.get().strip().lower() if hasattr(self, 'multi_search_var') else ""
+        filter_col = self.filter_column_var.get() if hasattr(self, 'filter_column_var') else None
+        filter_vals = self.filter_multi_values if hasattr(self, 'filter_multi_values') else set()
+        sort_col = self.sort_column_var.get() if hasattr(self, 'sort_column_var') else None
+        sort_order = self.sort_order_var.get() if hasattr(self, 'sort_order_var') else "Ascending"
         df = self.df.copy()
-        if team != "All":
-            df = df[df['Team'] == team]
-        # Update table
+        # Multi-column search
+        if search:
+            mask = pd.Series([False] * len(df))
+            for col in self.dashboard_tree_cols:
+                if col in df.columns:
+                    mask = mask | df[col].astype(str).str.lower().str.contains(search)
+            df = df[mask]
+        # Multi-select filter
+        if filter_col and filter_col in df.columns and filter_vals:
+            df = df[df[filter_col].isin(filter_vals)]
+        # Sort
+        if sort_col and sort_col in df.columns:
+            df = df.sort_values(by=sort_col, ascending=(sort_order == "Ascending"))
         for item in self.dashboard_tree.get_children():
             self.dashboard_tree.delete(item)
         for _, row in df.iterrows():
-            values = [row.get(col, '') for col in self.dashboard_display_columns]
+            values = [row.get(col, '') for col in self.dashboard_tree_cols]
             self.dashboard_tree.insert('', 'end', values=values)
-        # Clear preview if selection is not in filtered table
         self.selected_issue = None
-        self.email_preview_box.delete('1.0', 'end')
+        if hasattr(self, 'email_preview_box'):
+            self.email_preview_box.delete('1.0', 'end')
 
     def on_dashboard_select(self, event):
         selected = self.dashboard_tree.selection()
         if not selected:
             self.selected_issue = None
-            self.email_preview_box.delete('1.0', 'end')
+            if hasattr(self, 'email_preview_box'):
+                self.email_preview_box.delete('1.0', 'end')
             return
         item = self.dashboard_tree.item(selected[0])
         values = item['values']
-        columns = self.dashboard_display_columns
+        columns = self.dashboard_tree_cols
         issue = {col: values[i] for i, col in enumerate(columns)}
         # Find the full issue row in self.df (to get all fields)
-        df_row = self.df[self.df['ID'] == issue['ID']]
+        if 'Issue ID' in issue and 'Issue ID' in self.df.columns:
+            df_row = self.df[self.df['Issue ID'] == issue['Issue ID']]
+        else:
+            df_row = pd.DataFrame()
         if not df_row.empty:
             issue = df_row.iloc[0].to_dict()
         self.selected_issue = issue
+        # Auto-select template if associated
+        for name, template in self.email_templates.items():
+            assoc_col = template.get('assoc_column', '')
+            assoc_val = template.get('assoc_value', '')
+            if assoc_col and assoc_val and issue.get(assoc_col, '') == assoc_val:
+                self.template_select_var.set(name)
+                self.load_selected_template()
+                break
         self.render_email_preview(issue)
 
+    def on_reminder_interval_change(self, *args):
+        if self.selected_issue:
+            self.render_email_preview(self.selected_issue)
+
     def render_email_preview(self, issue):
-        # Load template
         try:
             with open(self.email_template_file, 'r') as f:
                 template = f.read()
         except Exception as e:
-            self.email_preview_box.delete('1.0', 'end')
-            self.email_preview_box.insert('1.0', f"Error loading template: {e}")
+            if hasattr(self, 'email_preview_box'):
+                self.email_preview_box.delete('1.0', 'end')
+                self.email_preview_box.insert('1.0', f"Error loading template: {e}")
             return
-        # Calculate days remaining
+        # Calculate reminder date and days remaining
+        interval_label = self.reminder_interval_var.get() if hasattr(self, 'reminder_interval_var') else "7 days before"
+        interval_days = 7
+        for label, days in self.reminder_intervals:
+            if label == interval_label:
+                interval_days = days
+                break
         try:
-            resolution_date = datetime.strptime(str(issue.get('Resolution_Date', '')), '%Y-%m-%d')
-            days_remaining = (resolution_date - datetime.now()).days
+            mgmt_date_str = str(issue.get('Management Resolution Date', ''))
+            mgmt_date = datetime.strptime(mgmt_date_str, '%Y-%m-%d')
+            reminder_date = mgmt_date - timedelta(days=interval_days)
+            days_remaining = (reminder_date - datetime.now()).days
+            reminder_date_str = reminder_date.strftime('%Y-%m-%d')
         except Exception:
+            reminder_date_str = ''
             days_remaining = ''
-        # Replace template variables
         preview = template
         preview = preview.replace('{{ISSUE_ID}}', str(issue.get('ID', '')))
         preview = preview.replace('{{DESCRIPTION}}', str(issue.get('Description', '')))
         preview = preview.replace('{{PRIORITY}}', str(issue.get('Priority', '')))
         preview = preview.replace('{{STATUS}}', str(issue.get('Status', '')))
-        preview = preview.replace('{{RESOLUTION_DATE}}', str(issue.get('Resolution_Date', '')))
+        preview = preview.replace('{{RESOLUTION_DATE}}', str(issue.get('Management Resolution Date', '')))
         preview = preview.replace('{{DAYS_REMAINING}}', str(days_remaining))
+        preview = preview.replace('{{REMINDER_DATE}}', str(reminder_date_str))
         preview = preview.replace('{{TEAM}}', str(issue.get('Team', '')))
         preview = preview.replace('{{CREATED_DATE}}', str(issue.get('Created_Date', '')))
         preview = preview.replace('{{REMINDER_COUNT}}', str(issue.get('Reminder_Count', '')))
         preview = preview.replace('{{CURRENT_DATE}}', datetime.now().strftime('%Y-%m-%d'))
-        # Show as plain text (strip HTML tags for preview)
         import re
         text_preview = re.sub('<[^<]+?>', '', preview)
-        self.email_preview_box.delete('1.0', 'end')
-        self.email_preview_box.insert('1.0', text_preview)
+        if hasattr(self, 'email_preview_box'):
+            self.email_preview_box.delete('1.0', 'end')
+            self.email_preview_box.insert('1.0', text_preview)
 
     def send_dashboard_email(self):
         if not self.selected_issue:
@@ -945,9 +1168,10 @@ Generated on: {datetime.now().strftime('%Y-%m-%d')}
         webbrowser.open(mailto_link)
 
     def copy_email_preview(self):
-        self.root.clipboard_clear()
-        self.root.clipboard_append(self.email_preview_box.get('1.0', 'end').strip())
-        messagebox.showinfo("Copied", "Email preview copied to clipboard.")
+        if hasattr(self, 'email_preview_box'):
+            self.root.clipboard_clear()
+            self.root.clipboard_append(self.email_preview_box.get('1.0', 'end').strip())
+            messagebox.showinfo("Copied", "Email preview copied to clipboard.")
 
 # Main entry point
 if __name__ == "__main__":
