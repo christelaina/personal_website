@@ -15,6 +15,9 @@ const Directory = () => {
           <li>
             <NavLink to="/projects">projects /</NavLink>
           </li>
+          <li>
+            <NavLink to="/secret">secret /</NavLink>
+          </li>
         </ul>
       </div>
     </nav>
