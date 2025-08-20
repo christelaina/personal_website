@@ -1,0 +1,380 @@
+' =====================================================
+' NAME CHECK VBA SCRIPT - ACTIVE X REAL-TIME FILTERING VERSION
+' =====================================================
+' This script checks if a name exists in a reference workbook
+' and provides real-time filtering in an ActiveX ComboBox
+' As the user types, matches appear instantly in the dropdown
+' 
+' REQUIREMENTS: Form must already exist in Excel with:
+' - ActiveX ComboBox named "ResultsComboBox"
+' - Button named "CheckNameButton" 
+' - CheckBox named "DoesNotExist"
+' - Cell A2 for input
+' =====================================================
+
+Option Explicit
+
+' Global variables
+Dim refWorkbook As Workbook
+Dim refWorksheet As Worksheet
+Dim nameList As Collection
+
+' =====================================================
+' MAIN FUNCTION: Check Name Button Click
+' =====================================================
+Sub CheckNameButton_Click()
+    Dim inputName As String
+    Dim closestMatches As Collection
+    Dim i As Integer
+    Dim matchCount As Integer
+    
+    ' Get the input name from cell A2 (adjust as needed)
+    inputName = Trim(ThisWorkbook.Worksheets("Form").Range("A2").Value)
+    
+    ' Validate input
+    If inputName = "" Then
+        MsgBox "Please enter a name in cell A2", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Load reference workbook
+    If Not LoadReferenceWorkbook Then
+        Exit Sub
+    End If
+    
+    ' Find closest matches
+    Set closestMatches = FindClosestMatches(inputName)
+    
+    ' Clear previous results
+    ClearPreviousResults
+    
+    ' Display results
+    If closestMatches.Count > 0 Then
+        ' Update the combo box with matches (already done in real-time)
+        ' Uncheck "Does not exist" checkbox
+        ThisWorkbook.Worksheets("Form").CheckBoxes("DoesNotExist").Value = False
+        MsgBox "Found " & closestMatches.Count & " matches for '" & inputName & "'. Select from the dropdown.", vbInformation
+    Else
+        ' No matches found - check the "Does not exist" checkbox
+        ThisWorkbook.Worksheets("Form").CheckBoxes("DoesNotExist").Value = True
+        MsgBox "No matches found for '" & inputName & "'", vbInformation
+    End If
+    
+    ' Clean up
+    Set closestMatches = Nothing
+End Sub
+
+' =====================================================
+' LOAD REFERENCE WORKBOOK
+' =====================================================
+Function LoadReferenceWorkbook() As Boolean
+    Dim filePath As String
+    
+    ' Try to open reference workbook (adjust path as needed)
+    filePath = ThisWorkbook.Path & "\ReferenceNames.xlsx"
+    
+    On Error Resume Next
+    ' Open with additional parameters to keep it hidden
+    Set refWorkbook = Workbooks.Open(filePath, ReadOnly:=True, UpdateLinks:=False)
+    
+    If refWorkbook Is Nothing Then
+        ' Try alternative path
+        filePath = Application.GetOpenFilename("Excel Files (*.xlsx),*.xlsx", , "Select Reference Workbook")
+        If filePath = "False" Then
+            MsgBox "No reference workbook selected", vbExclamation
+            LoadReferenceWorkbook = False
+            Exit Function
+        End If
+        Set refWorkbook = Workbooks.Open(filePath, ReadOnly:=True, UpdateLinks:=False)
+    End If
+    
+    On Error GoTo 0
+    
+    If refWorkbook Is Nothing Then
+        MsgBox "Could not open reference workbook", vbCritical
+        LoadReferenceWorkbook = False
+        Exit Function
+    End If
+    
+    ' Hide the reference workbook window
+    refWorkbook.Windows(1).Visible = False
+    
+    ' Set reference worksheet (assuming first sheet contains names)
+    Set refWorksheet = refWorkbook.Worksheets(1)
+    
+    ' Load names into collection
+    LoadNamesIntoCollection
+    
+    LoadReferenceWorkbook = True
+End Function
+
+' =====================================================
+' LOAD NAMES INTO COLLECTION
+' =====================================================
+Sub LoadNamesIntoCollection()
+    Dim lastRow As Long
+    Dim i As Long
+    
+    Set nameList = New Collection
+    
+    ' Find last row with data
+    lastRow = refWorksheet.Cells(refWorksheet.Rows.Count, 1).End(xlUp).Row
+    
+    ' Load names from column A (starting from row 2 to skip header)
+    For i = 2 To lastRow
+        If Trim(refWorksheet.Cells(i, 1).Value) <> "" Then
+            nameList.Add Trim(refWorksheet.Cells(i, 1).Value)
+        End If
+    Next i
+End Sub
+
+' =====================================================
+' FIND CLOSEST MATCHES
+' =====================================================
+Function FindClosestMatches(inputName As String) As Collection
+    Dim matches As New Collection
+    Dim i As Integer
+    Dim similarity As Double
+    Dim threshold As Double
+    Dim name As Variant
+    Dim matchInfo As String
+    
+    ' Set similarity threshold (0.6 = 60% similarity)
+    threshold = 0.6
+    
+    ' Check each name in the reference list
+    For Each name In nameList
+        similarity = CalculateSimilarity(LCase(inputName), LCase(name))
+        
+        If similarity >= threshold Then
+            ' Add to matches with similarity score as the item itself
+            matchInfo = CStr(similarity) & "_" & name
+            On Error Resume Next
+            matches.Add matchInfo
+            On Error GoTo 0
+        End If
+    Next name
+    
+    ' Sort matches by similarity (highest first)
+    SortMatchesBySimilarity matches
+    
+    ' Limit to top 10 matches
+    If matches.Count > 10 Then
+        Dim tempMatches As New Collection
+        For i = 1 To 10
+            tempMatches.Add matches(i)
+        Next i
+        Set matches = tempMatches
+    End If
+    
+    Set FindClosestMatches = matches
+End Function
+
+' =====================================================
+' CALCULATE SIMILARITY BETWEEN TWO STRINGS
+' =====================================================
+Function CalculateSimilarity(str1 As String, str2 As String) As Double
+    Dim len1 As Integer, len2 As Integer
+    Dim matrix() As Integer
+    Dim i As Integer, j As Integer
+    Dim cost As Integer
+    
+    len1 = Len(str1)
+    len2 = Len(str2)
+    
+    ' Initialize matrix
+    ReDim matrix(len1 + 1, len2 + 1)
+    
+    ' Fill first row and column
+    For i = 0 To len1
+        matrix(i, 0) = i
+    Next i
+    For j = 0 To len2
+        matrix(0, j) = j
+    Next j
+    
+    ' Fill matrix using Levenshtein distance algorithm
+    For i = 1 To len1
+        For j = 1 To len2
+            If Mid(str1, i, 1) = Mid(str2, j, 1) Then
+                cost = 0
+            Else
+                cost = 1
+            End If
+            
+            matrix(i, j) = Application.Min(matrix(i - 1, j) + 1, _
+                                         matrix(i, j - 1) + 1, _
+                                         matrix(i - 1, j - 1) + cost)
+        Next j
+    Next i
+    
+    ' Calculate similarity as 1 - (distance / max length)
+    CalculateSimilarity = 1 - (matrix(len1, len2) / Application.Max(len1, len2))
+End Function
+
+' =====================================================
+' SORT MATCHES BY SIMILARITY
+' =====================================================
+Sub SortMatchesBySimilarity(matches As Collection)
+    Dim i As Integer, j As Integer
+    Dim temp As Variant
+    Dim score1 As Double, score2 As Double
+    
+    ' Simple bubble sort (for small collections)
+    For i = 1 To matches.Count - 1
+        For j = i + 1 To matches.Count
+            ' Safely extract scores with error handling
+            On Error Resume Next
+            Dim parts1() As String, parts2() As String
+            parts1 = Split(matches(i), "_")
+            parts2 = Split(matches(j), "_")
+            
+            If UBound(parts1) >= 0 And UBound(parts2) >= 0 Then
+                score1 = CDbl(parts1(0))
+                score2 = CDbl(parts2(0))
+                
+                If score1 < score2 Then
+                    ' Swap items
+                    temp = matches(i)
+                    matches.Remove i
+                    matches.Add temp, , j
+                    matches.Remove j - 1
+                    matches.Add temp, , i
+                End If
+            End If
+            On Error GoTo 0
+        Next j
+    Next i
+End Sub
+
+
+
+' =====================================================
+' CLEAR PREVIOUS RESULTS
+' =====================================================
+Sub ClearPreviousResults()
+    ' Clear previous results label
+    ThisWorkbook.Worksheets("Form").Range("B1").ClearContents
+    
+    ' Clear the results combo box
+    Dim resultsComboBox As Object
+    
+    ' Get the ActiveX combo box
+    Set resultsComboBox = ThisWorkbook.Worksheets("Form").OLEObjects("ResultsComboBox").Object
+    
+    ' Clear all items from the ActiveX combo box
+    resultsComboBox.Clear
+    
+    resultsComboBox.AddItem "Type to see matches..."
+    resultsComboBox.ListIndex = 0
+    
+    ' Clear the input cell for new input
+    ThisWorkbook.Worksheets("Form").Range("A2").ClearContents
+End Sub
+
+' =====================================================
+' WORKSHEET CHANGE EVENT - Real-time filtering
+' =====================================================
+Private Sub Worksheet_Change(ByVal Target As Range)
+    ' Only respond to changes in cell A2
+    If Target.Address = "$A$2" Then
+        ' Use Application.OnTime for better performance and to avoid multiple rapid calls
+        Application.OnTime Now + TimeValue("00:00:00.1"), "UpdateComboBoxInRealTime"
+    End If
+End Sub
+
+' =====================================================
+' ACTIVE X COMBO BOX CHANGE EVENT - Real-time filtering
+' =====================================================
+Private Sub ResultsComboBox_Change()
+    ' This event fires when the combo box selection changes
+    ' We can use this for additional functionality if needed
+End Sub
+
+' =====================================================
+' UPDATE COMBO BOX IN REAL TIME
+' =====================================================
+Sub UpdateComboBoxInRealTime()
+    Dim userInput As String
+    Dim filteredMatches As Collection
+    Dim i As Integer
+    Dim cb As Object
+    
+    ' Get the ActiveX combo box
+    Set cb = ThisWorkbook.Worksheets("Form").OLEObjects("ResultsComboBox").Object
+    
+    ' Get what user typed
+    userInput = Trim(ThisWorkbook.Worksheets("Form").Range("A2").Value)
+    
+    ' Clear the ActiveX combo box
+    cb.Clear
+    
+    ' If user typed something, filter and show matches
+    If Len(userInput) > 0 Then
+        ' Load reference workbook if not already loaded
+        If refWorkbook Is Nothing Then
+            If Not LoadReferenceWorkbook Then
+                Exit Sub
+            End If
+        End If
+        
+        ' Find matches
+        Set filteredMatches = FindClosestMatches(userInput)
+        
+        ' Add matches to combo box
+        If filteredMatches.Count > 0 Then
+            cb.AddItem "Select a match from the list..."
+            For i = 1 To filteredMatches.Count
+                ' Extract just the name part from "score_name"
+                Dim matchParts() As String
+                matchParts = Split(filteredMatches(i), "_")
+                If UBound(matchParts) >= 1 Then
+                    ' Extract the name part (everything after the first underscore)
+                    Dim namePart As String
+                    namePart = Right(filteredMatches(i), Len(filteredMatches(i)) - InStr(filteredMatches(i), "_"))
+                    cb.AddItem namePart
+                Else
+                    ' Fallback if no underscore found
+                    cb.AddItem filteredMatches(i)
+                End If
+            Next i
+        Else
+            cb.AddItem "No matches found"
+        End If
+        
+        ' Set default selection
+        cb.ListIndex = 0
+    Else
+        ' User cleared the input
+        cb.AddItem "Type to see matches..."
+        cb.ListIndex = 0
+    End If
+End Sub
+
+' =====================================================
+' CLEANUP ON WORKBOOK CLOSE
+' =====================================================
+Sub Workbook_BeforeClose(Cancel As Boolean)
+    ' Close reference workbook if open
+    If Not refWorkbook Is Nothing Then
+        refWorkbook.Close SaveChanges:=False
+        Set refWorkbook = Nothing
+    End If
+    
+    ' Clear collections
+    Set nameList = Nothing
+    Set refWorksheet = Nothing
+End Sub
+
+' =====================================================
+' FORM REQUIREMENTS (Your Excel form should have):
+' =====================================================
+' 1. Worksheet named "Form"
+' 2. Cell A2 for name input
+' 3. ActiveX ComboBox named "ResultsComboBox" in cell B2 area
+' 4. Button named "CheckNameButton" with OnAction = "CheckNameButton_Click"
+' 5. CheckBox named "DoesNotExist"
+' 6. ReferenceNames.xlsx file in the same folder
+' =====================================================
+
+
