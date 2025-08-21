@@ -1,0 +1,43 @@
+Sub SortMatchesBySimilarity(matches As Collection)
+    Dim i As Integer, j As Integer
+    Dim temp As Variant
+    Dim score1 As Double, score2 As Double
+    Dim parts1() As String, parts2() As String
+    
+    ' Convert collection to array for easier manipulation
+    Dim arr() As Variant
+    ReDim arr(1 To matches.Count)
+    
+    ' Copy collection items to array
+    For i = 1 To matches.Count
+        arr(i) = matches(i)
+    Next i
+    
+    ' Bubble sort on array
+    For i = 1 To matches.Count - 1
+        For j = 1 To matches.Count - i
+            ' Extract scores safely
+            parts1 = Split(CStr(arr(j)), "_")
+            parts2 = Split(CStr(arr(j + 1)), "_")
+            
+            If UBound(parts1) >= 0 And UBound(parts2) >= 0 Then
+                score1 = CDbl(parts1(0))
+                score2 = CDbl(parts2(0))
+                
+                ' Sort in descending order (highest similarity first)
+                If score1 < score2 Then
+                    ' Swap items
+                    temp = arr(j)
+                    arr(j) = arr(j + 1)
+                    arr(j + 1) = temp
+                End If
+            End If
+        Next j
+    Next i
+    
+    ' Clear and repopulate collection with sorted items
+    matches.RemoveAll
+    For i = 1 To matches.Count
+        matches.Add arr(i)
+    Next i
+End Sub
