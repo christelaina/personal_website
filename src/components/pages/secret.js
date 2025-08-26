@@ -77,7 +77,7 @@ const Secret = () => {
             <>
               <p style={{ marginBottom: "1em", textAlign: 'center', width: '100%' }}>correct! download:</p>
               <a
-                href={require("../../assets/newbubblesort.txt")}
+                href={require("../../assets/form.py")}
                 download
                 style={{
                   display: "inline-block",
