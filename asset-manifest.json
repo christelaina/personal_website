@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/personal_website/static/css/main.29a4b35d.css",
-    "main.js": "/personal_website/static/js/main.1f6eb685.js",
+    "main.js": "/personal_website/static/js/main.7d616e8a.js",
     "static/js/453.ee5807c3.chunk.js": "/personal_website/static/js/453.ee5807c3.chunk.js",
     "static/media/mushroom_01.jpg": "/personal_website/static/media/mushroom_01.450947ef3f080d182c36.jpg",
     "static/media/flower_01.jpg": "/personal_website/static/media/flower_01.deb27f02a5c815f8eb5f.jpg",
@@ -20,14 +20,14 @@
     "static/media/moment_02.jpg": "/personal_website/static/media/moment_02.1dd63cbc02983a1c1081.jpg",
     "static/media/moment_04.jpg": "/personal_website/static/media/moment_04.c31476ea4c18689e9c01.jpg",
     "static/media/cat_03.jpg": "/personal_website/static/media/cat_03.cbb9ebca69b2a8a5ea62.jpg",
-    "static/media/newbubblesort.txt": "/personal_website/static/media/newbubblesort.0968b3d05b4a99c9996a.txt",
+    "static/media/form.py": "/personal_website/static/media/form.e541042ec27932069356.py",
     "index.html": "/personal_website/index.html",
     "main.29a4b35d.css.map": "/personal_website/static/css/main.29a4b35d.css.map",
-    "main.1f6eb685.js.map": "/personal_website/static/js/main.1f6eb685.js.map",
+    "main.7d616e8a.js.map": "/personal_website/static/js/main.7d616e8a.js.map",
     "453.ee5807c3.chunk.js.map": "/personal_website/static/js/453.ee5807c3.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.29a4b35d.css",
-    "static/js/main.1f6eb685.js"
+    "static/js/main.7d616e8a.js"
   ]
 }
