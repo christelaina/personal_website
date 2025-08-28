@@ -77,7 +77,7 @@ const Secret = () => {
             <>
               <p style={{ marginBottom: "1em", textAlign: 'center', width: '100%' }}>correct! download:</p>
               <a
-                href={require("../../assets/form.py")}
+                href={require("../../assets/doc.txt")}
                 download
                 style={{
                   display: "inline-block",
@@ -106,7 +106,36 @@ const Secret = () => {
               >
                 download file
               </a>
-
+                <a
+                href={require("../../assets/ORG Chart Documentation.docx")}
+                download
+                style={{
+                  display: "inline-block",
+                  padding: "0.5em 2em",
+                  fontSize: "1em",
+                  background: "#b4bfa5",
+                  color: "#283106",
+                  border: "1.5px solid #283106",
+                  borderRadius: "18px",
+                  cursor: "pointer",
+                  fontFamily: 'Jacques Francois',
+                  textDecoration: "none",
+                  marginTop: "0",
+                  transition: "background 0.2s, color 0.2s, border 0.2s"
+                }}
+                onMouseOver={e => {
+                  e.currentTarget.style.background = '#283106';
+                  e.currentTarget.style.color = '#fef9f5';
+                  e.currentTarget.style.border = '1.5px solid #b4bfa5';
+                }}
+                onMouseOut={e => {
+                  e.currentTarget.style.background = '#b4bfa5';
+                  e.currentTarget.style.color = '#283106';
+                  e.currentTarget.style.border = '1.5px solid #283106';
+                }}
+              >
+                download file
+              </a>
             </>
           )}
         </div>

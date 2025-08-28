@@ -1,0 +1,282 @@
+Audit Issue Management System – User Documentation
+Overview
+
+The Audit Issue Management System is a desktop application designed to help manage and track audit issues from an Excel file. It provides two main features:
+
+A dashboard to view issues in a table and monitor their status.
+
+An email management system to create and send reminders to responsible teams.
+
+The program uses configuration files to store preferences, templates, and settings so it can be reused without having to change the underlying code.
+
+Workflow
+
+Start the application: When you open the program, it will launch a main window with two tabs – Dashboard and Email Management.
+
+Load Excel data: You can select the Excel file that contains audit issues. Each row in this file represents a single issue, with details like Issue ID, Description, Team Name, and Resolution Date.
+
+View Dashboard: The Dashboard tab shows a summary of all issues in a table. It displays important columns such as Issue ID, Description, Team, and Due Date. You can click on an issue to preview its reminder email.
+
+Preview Emails: For each issue, an email preview is shown. The system automatically fills in details such as Issue ID, Description, Team, and number of days remaining before the due date.
+
+Send or Copy Emails: You can either open the reminder in your email application (so you can send it) or copy the content to your clipboard.
+
+Manage Templates: In the Email Management tab, you can create, edit, and save templates for reminder emails. This allows you to customize how reminders look. Templates can be linked to certain issue types if needed.
+
+Reminders: The system can automatically check due dates and prompt for reminders based on set intervals (for example, 7 days before or 30 days before).
+
+Key Features and Functions
+Initialization and Files
+
+When the application starts, it ensures all the necessary files exist:
+
+config.json: Stores reminder interval settings.
+
+email_template.html: A default HTML template for emails.
+
+email_templates.json: Stores multiple saved templates.
+
+dashboard_columns.json: Stores which columns should be shown on the dashboard.
+
+If these files do not exist, the program creates them automatically.
+
+Dashboard Functions
+
+create_dashboard_tab: Builds the main dashboard screen. It loads the Excel file, shows the number of total issues, and creates the table of issues.
+
+enter_audit_excel: Lets you browse and select the Excel file that holds audit issues. Once chosen, the dashboard updates automatically.
+
+on_dashboard_select: When you click on an issue in the table, the program loads all the details for that issue and updates the email preview panel.
+
+open_configure_columns_popup: Lets you choose which columns from the Excel file appear on the dashboard.
+
+Email Functions
+
+render_email_preview: Takes the selected issue and fills in the placeholders (like {{ISSUE_ID}} or {{TEAM}}) inside the email template. It then shows the complete email in a preview box.
+
+send_dashboard_email: Opens your default email application with the previewed content so you can send it.
+
+copy_email_preview: Copies the previewed email text to your clipboard for pasting elsewhere.
+
+send_reminder_email / send_reminder_to_selected / send_all_overdue_reminders / send_weekly_reminders: Different options for sending reminder emails automatically depending on the due date of issues.
+
+test_email_config: Sends a test email to make sure your email program is working with the system.
+
+Email Template Management
+
+create_email_tab: Builds the template management screen where you can select, edit, or create new templates.
+
+load_email_templates: Loads all saved templates from file. Ensures at least one default template exists.
+
+save_email_template: Saves changes you make to a template.
+
+new_email_template: Creates a new, empty template.
+
+delete_email_template: Deletes a template from the system.
+
+render_live_template: Shows how the template will look when filled with example data, making it easier to design.
+
+Automated Reminders
+
+start_reminder_scheduler: Runs a background process that checks every hour whether issues are approaching their due dates.
+
+check_and_send_reminders: Looks at all issues and automatically generates reminders if the due date matches a chosen interval (like 7 days before).
+
+Typical Usage
+
+Start the program and load your Excel file of issues.
+
+Check the dashboard to see the total number of issues and their due dates.
+
+Select an issue to see its reminder email.
+
+Either copy the email to your clipboard or send it through your email program.
+
+If needed, go to the Email Management tab to create or edit templates.
+
+Leave the application running, and it will automatically track when reminders should be sent.
+
+Notes for Non-Coders
+
+You do not need to edit any code. All customization is handled through Excel, templates, or built-in settings.
+
+Make sure your Excel file has the expected columns like “Issue ID,” “Issue Description,” “Team Name,” and “Management Resolution Date.”
+
+If you want to change the look of the emails, use the Email Management tab instead of editing the HTML file directly.
+
+The program relies on your default email application (like Outlook). Ensure it is set up properly on your computer.
+
+Would you like me to also make a step-by-step quick start guide with screenshots placeholders (like "Step 1: Click Browse → Step 2: Select Excel File") so someone with zero technical background can follow along easily?
+
+You said:
+yes
+ChatGPT said:
+
+Perfect 👍 I’ll create a Quick Start Guide that uses step-by-step instructions with placeholders for screenshots. You can later capture screenshots of the application and insert them where noted.
+
+Quick Start Guide – Audit Issue Management System
+
+This guide walks you through how to use the Audit Issue Management System, even if you have no coding or technical background. Follow each step in order, and you’ll be able to load issues, view the dashboard, and send reminder emails.
+
+Step 1: Open the Application
+
+Double-click the program icon (audit.exe or audit.py) to start.
+
+A window will open with two tabs at the top: Dashboard and Email Management.
+
+📸 [Insert screenshot of main window with Dashboard & Email tabs]
+
+Step 2: Load Your Excel File
+
+Go to the Dashboard tab.
+
+Click the Browse button next to “Audit Issue Excel.”
+
+Select the Excel file that contains audit issues (it should be .xlsx).
+
+The dashboard will refresh to show a summary and table of issues.
+
+📸 [Insert screenshot of Browse button and Excel file dialog]
+
+Step 3: View Issues in the Dashboard
+
+The top section shows the total number of issues.
+
+Below that is a table listing each issue with details such as ID, Description, Team, and Due Date.
+
+Click on any row in the table to select an issue.
+
+📸 [Insert screenshot of issues table with a row selected]
+
+Step 4: Preview an Email
+
+Once you select an issue, the Email Preview panel at the bottom will update automatically.
+
+The preview fills in details like the Issue ID, Team Name, Resolution Date, and Days Remaining.
+
+📸 [Insert screenshot of email preview panel]
+
+Step 5: Send or Copy the Email
+
+Send Email: Opens your default email application (e.g., Outlook) with the reminder ready to send.
+
+Copy to Clipboard: Copies the email text so you can paste it into Outlook, Word, or Teams.
+
+📸 [Insert screenshot of Send/Copy buttons above the preview box]
+
+Step 6: Manage Email Templates
+
+Switch to the Email Management tab.
+
+Here, you can:
+
+Select an existing template.
+
+Create a new template.
+
+Edit and save templates.
+
+Delete templates you don’t need.
+
+Templates use placeholders like {{ISSUE_ID}} that get replaced with actual issue details.
+
+📸 [Insert screenshot of Email Management tab with template editor]
+
+Step 7: Automated Reminders
+
+The system runs a background process that checks for issues coming due.
+
+It automatically prepares reminders based on the configured schedule (e.g., 7 days before, 30 days before).
+
+You can also send reminders manually with buttons like Send Weekly Reminders or Send All Overdue Reminders.
+
+📸 [Insert screenshot of reminder options or settings]
+
+Step 8: Customize Dashboard Columns (Optional)
+
+If you want to change which columns are shown in the table:
+
+Click Configure Columns.
+
+Check or uncheck the boxes for the columns you want.
+
+Click Save, and the dashboard will refresh.
+
+📸 [Insert screenshot of column configuration popup]
+
+Step 9: Save Your Work
+
+Any reminders you send are recorded back into the Excel file with updated counts and last reminder dates.
+
+To avoid losing data, always click Save or close the program properly when finished.
+
+📸 [Insert screenshot of Excel showing updated reminder count]
+
+Tips & Reminders
+
+Make sure your Excel file has the required columns (Issue ID, Issue Description, Team Name, Management Resolution Date).
+
+Your email program (Outlook, etc.) must be set up on your computer for “Send Email” to work.
+
+You don’t need to edit any code — everything can be managed through the interface.
+
+If something looks wrong, check the Email Management tab to ensure the template is correct.
+
+👉 Would you like me to also prepare a one-page “cheat sheet” version (a simplified checklist with only the key steps, no details), so that a new user can pin it next to their monitor?
+
+You said:
+yes
+ChatGPT said:
+
+Great idea 👍 Here’s a one-page cheat sheet — concise enough to print or keep beside the computer.
+
+Audit Issue Management System – Cheat Sheet ✅
+Daily Workflow
+
+Open App → Double-click program.
+
+Load Excel File → Dashboard tab → Browse → Select .xlsx.
+
+Check Dashboard → View issue list.
+
+Select Issue → Click row → Email Preview updates.
+
+Send Reminder
+
+Send Email → Opens Outlook with draft.
+
+Copy to Clipboard → Paste into email/Teams.
+
+Templates (Email Management Tab)
+
+Select → Pick existing template.
+
+New → Create new template.
+
+Edit + Save → Update wording.
+
+Delete → Remove unused template.
+
+Automated Reminders
+
+Runs in background (checks hourly).
+
+Buttons available:
+
+Send Weekly Reminders → Issues due this week.
+
+Send All Overdue Reminders → Issues past due.
+
+Quick Tips
+
+Excel must have: Issue ID, Description, Team Name, Resolution Date.
+
+Keep Outlook (or your default email app) set up on your PC.
+
+Use Configure Columns to change dashboard view.
+
+Emails are always saved back into Excel with updated reminder counts.
+
+⚡ Shortcut: Load Excel → Select Issue → Send Email. Done!
+
+Do you want me to also make a visual flowchart version (arrows + boxes showing the workflow from “Load Excel” → “View Dashboard” → “Send Email”)? It would make training even easier for completely new users.
